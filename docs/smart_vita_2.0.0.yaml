@@ -1,0 +1,130 @@
+openapi: '3.0.2'
+info:
+  title: Empowering People 3 - smartVita
+  version: '2.0'
+  description: This Service provides several enpoints to manage smart devices.
+    After signing in customers can register devices and colected from them.
+    The visualisation of the data provides useful insides for the customer. 
+servers:
+  - url: https://api.smart-vita.de/services/2.0
+tags:
+  - name: devices
+    description: Everything about your Devices
+    externalDocs:
+      description: Find out more
+      url: https://www.smart-vita.de
+paths:
+  /devices:
+    get:
+      tags:
+        - devices
+      summary: Obtain the list of devices for the logged in customer.
+      description: Devices are identified by the the uniqe name
+      responses:
+        '200':
+          description: OK
+  /devices/{device-id}:
+    get:
+      tags:
+        - devices
+      summary: Obtain details for a specific device
+      description: This endpoint will deliver all information for a single device.
+      parameters:
+      - name: device-id
+        in: path
+        description: Unique ID of the device
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+components:
+  schemas:
+    Device:
+      type: object
+      properties:
+        sdName:
+          type: string
+          example: '408398AE3FD1'
+        drName:
+          type: string
+          example: 'My Device'
+        drUnit:
+          type: string
+          example: 'W'
+        drType:
+          type: integer
+          description: |
+            Device type
+            * '0':
+              analog electricity meter
+            * '1':
+              S0 electricity device
+          enum:
+            - 0
+            - 1
+            - 2
+        cd:
+          type: string
+          format: date-time
+        _links:
+          $ref: "#/components/schemas/_linksDevices"
+      xml:
+        name: order
+
+    hrefType:
+      description: Link to a resource.
+      type: object
+      properties:
+        href:
+          $ref: "#/components/schemas/hrefEntry"
+
+    hrefEntry:
+      description: Link to a resource.
+      type: string
+      example: "/devices/408398AE3FD1"
+
+    _linksDevices:
+      description: |
+        A list of hyperlinks to be recognised by the consumer
+        Type of links admitted in this responses:
+        * 'self':
+            The link to the Device resource. 
+            This link can be used to retrieve the resource data.
+        * 'data': 
+            In case of an OAuth2 based Redirect Approach, the ASPSP is transmitting the link where the configuration 
+            of the OAuth2 Server is defined.
+      type: object
+      additionalProperties: 
+        $ref: "#/components/schemas/hrefType"
+      properties:
+        self: 
+          $ref: "#/components/schemas/hrefType"
+        data:
+          $ref: "#/components/schemas/hrefType"
+        reading:
+          $ref: "#/components/schemas/hrefType"
+        life_data:
+          $ref: "#/components/schemas/hrefType"
+        values:
+          $ref: "#/components/schemas/hrefType"
+        data_marks:
+          $ref: "#/components/schemas/hrefType"
+
+  securitySchemes:
+    name:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.smart-vita.de/authorize
+          tokenUrl: https://auth.smart-vita.de/token
+          scopes:
+            read: device.read
+            write: device.write device.data.write
+#          oauth2RedirectUrl: https://my.smart-vita.de
+
