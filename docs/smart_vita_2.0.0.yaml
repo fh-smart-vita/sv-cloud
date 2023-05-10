@@ -1063,7 +1063,7 @@ paths:
                 $ref: '#/components/schemas/ElectricityTariffList'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /energysuppliers/3/electricitytariffs:
+  /energysuppliers/{energySupplierId}/electricitytariffs:
     post:
       tags:
         - Electricity Tariffs
@@ -1079,6 +1079,11 @@ paths:
                 one_time_charge: 20
                 ot_c_interval_months: 1
       parameters:
+        - name: energySupplierId
+          in: path
+          schema:
+            $ref : '#/components/schemas/EnergySupplier/properties/id'
+          required: true
         - in: query
           name: dbg
           schema:
