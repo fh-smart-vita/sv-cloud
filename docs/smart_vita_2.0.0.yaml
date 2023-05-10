@@ -1,53 +1,115 @@
-openapi: '3.0.2'
+openapi: 3.0.0
 info:
-  title: Empowering People 3 - smartVita
-  version: '2.0'
-  description: This Service provides several enpoints to manage smart devices.
-    After signing in customers can register devices and colected from them.
-    The visualisation of the data provides useful insides for the customer. 
+  title: smartVita
+  version: 1.0.0
 servers:
   - url: https://api.smart-vita.de/services/2.0
-tags:
-  - name: devices
-    description: Everything about your Devices
-    externalDocs:
-      description: Find out more
-      url: https://www.smart-vita.de
-paths:
-  /devices:
-    get:
-      tags:
-        - devices
-      summary: Obtain the list of devices for the logged in customer.
-      description: Devices are identified by the the uniqe name
-      responses:
-        '200':
-          description: OK
-  /devices/{device-id}:
-    get:
-      tags:
-        - devices
-      summary: Obtain details for a specific device
-      description: This endpoint will deliver all information for a single device.
-      parameters:
-      - name: device-id
-        in: path
-        description: Unique ID of the device
-        schema:
-          type: string
-        required: true
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Device'
 components:
+  responses:
+    Unauthorized:
+      description: The request requires authentication and the user is not authenticated. Please check the authentication credentials and try again.
+      content:
+        application/json:
+          schema:
+            type: string
+          example: | 
+            access-control-allow-credentials: true 
+            cache-control: no-cache 
+            content-length: 0 
+            content-type: application/json; charset=utf-8 
+            date: Wed,26 Apr 2023 16:07:31 GMT 
+            etag: W/"0-2jmj7l5rRv0iPb/vlWAYkK/NFwk" 
+            expires: -1 
+            status: 401 Unauthorized 
+            www-authenticate: Bearer realm="Service"
+    DeviceNotFound:
+      description: Device not found
+      content:
+        application/json: 
+          schema:
+            $ref: '#/components/schemas/DeviceNotFoundError'
+    DatarowNotFound:
+      description: Datarow not found
+      content:
+        application/json: 
+          schema:
+            $ref: '#/components/schemas/DatarowNotFoundError'
+    AnnotationNotFound:
+      description: Annotation not found
+      content:
+        application/json: 
+          schema:
+            $ref: '#/components/schemas/AnnotationNotFoundError'
+    InvalidJson:
+      description: Syntax error in the request body
+      content:
+        application/json: 
+          schema:
+            $ref: '#/components/schemas/InvalidJsonError'
+    DatarowOrAnnotationNotFound:
+      description: Datarow or annotation not found
+      content:
+        application/json: 
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/DatarowNotFoundError'
+              - $ref: '#/components/schemas/AnnotationNotFoundError'
+    NoContent:
+      description: No content, operation successful
   schemas:
+#####  DATE #########
+    Datetime:
+      type: string
+      description: Datetime format
+      example: "2023-04-29 16:06:41"
+      format: date-time
+      pattern: "YYYY-MM-DD HH:mm:ss"
+      minLength: 0
+      maxLength: 19
+    IsoDatetime:
+      type: string
+      description: Datetime format
+      example: "2023-05-05T14:30:00Z"
+      format: date-time
+    DateQuery:
+      type: string
+      description: Date format for "q" query parameter
+      example: "cd<2017-01-01"
+      format: date
+      pattern: "^cd<[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+      minLength: 0
+      maxLength: 13
+    QueryTimeframe:
+      type: string
+      pattern: '^t_from>[0-9]{8}\+t_to<[0-9]{8}$'
+      example: 't_from>20210416+t_to<20210419'
+
+
+##########  DEVICES  ##########
     Device:
+      allOf:     # Combines the BasicErrorModel and the inline model
+        - $ref: '#/components/schemas/DeviceBarebone'
+        - type: object
+          required:
+            - _links
+          properties:
+            _links:
+              $ref: "#/components/schemas/_linksDevices"
+    DeviceDetailed:
+      allOf:     # Combines the BasicErrorModel and the inline model
+        - $ref: '#/components/schemas/DeviceBarebone'
+        - type: object
+          required:
+            - _links
+          properties:
+            _links:
+              $ref: "#/components/schemas/_linksDevicesDetailed"
+    DeviceBarebone:
       type: object
       properties:
+        deviceId:
+          type: string
+          example: 100
         sdName:
           type: string
           example: '408398AE3FD1'
@@ -72,23 +134,90 @@ components:
         cd:
           type: string
           format: date-time
-        _links:
-          $ref: "#/components/schemas/_linksDevices"
       xml:
         name: order
-
-    hrefType:
-      description: Link to a resource.
+##########  HREF TYPES  ##########
+    hrefTypeDevice:
+      description: Object holding a link to a device resource.
       type: object
       properties:
         href:
-          $ref: "#/components/schemas/hrefEntry"
+          type: string
+          example: "/devices/408398AE3FD1"
+        
+    hrefTypeDataValues:
+      description: Object holding a link to a data values resource.
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/datarows/125/alldatavalues"
+        
+    hrefTypeDatarows:
+      description: Object holding a link to a datarows resource.
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/device/100/datarows"
+        
+    hrefTypeReading:
+      description: Object holding a link to a reading resource.
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/datarows/125/currentmr"
+        
+    hrefTypeLiveData:
+      description: Object holding a link to a live data resource.
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/datarows/125/nowvalues"
+        
+    hrefTypeSensorValues:
+      description: Object holding a link to a sensor values resource.
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/datarows/125/sensorvaluesidemp"
+        
+    hrefTypeMeterReadings:
+      description: Object holding a link to a meter readings resource.
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/datarows/125/devicemeterreadings"
+          
+    hrefTypeDeviceTariffs:
+      description: Object holding a link to a device tariffs resource.
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/datarows/125/devicetariffs"
+        
+    hrefTypeDataMarks:
+      description: Object holding a link to a data marks resource.
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/datarows/125/annotations"
+        
+    hrefTypeAnnotationParams:
+      description: Object holding a link to an annotation params resource.
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/datarows/125/alldatavalues/search?a=round(max(dv_value)\\,2),round(min(dv_value)\\,2),round(sum(dv_amount/ed_turns_count)-count(*)*time_to_sec(timediff(max(ts)\\,min(ts)))/60/60*min(dv_value)/count(*)/1000\\,2),round((sum(dv_amount/ed_turns_count)-count(*)*time_to_sec(timediff(max(ts)\\,min(ts)))/60/60*min(dv_value)/count(*)/1000)*et_p_kw/100\\,2)"
 
-    hrefEntry:
-      description: Link to a resource.
-      type: string
-      example: "/devices/408398AE3FD1"
-
+##########  Devicelinks  ##########
     _linksDevices:
       description: |
         A list of hyperlinks to be recognised by the consumer
@@ -100,31 +229,990 @@ components:
             In case of an OAuth2 based Redirect Approach, the ASPSP is transmitting the link where the configuration 
             of the OAuth2 Server is defined.
       type: object
-      additionalProperties: 
-        $ref: "#/components/schemas/hrefType"
       properties:
         self: 
-          $ref: "#/components/schemas/hrefType"
+          $ref: "#/components/schemas/hrefTypeDevice"
         data:
-          $ref: "#/components/schemas/hrefType"
+          $ref: "#/components/schemas/hrefTypeDataValues"
         reading:
-          $ref: "#/components/schemas/hrefType"
+          $ref: "#/components/schemas/hrefTypeReading"
         life_data:
-          $ref: "#/components/schemas/hrefType"
+          $ref: "#/components/schemas/hrefTypeLiveData"
         values:
-          $ref: "#/components/schemas/hrefType"
+          $ref: "#/components/schemas/hrefTypeSensorValues"
         data_marks:
-          $ref: "#/components/schemas/hrefType"
-
+          $ref: "#/components/schemas/hrefTypeDataMarks"
+    _linksDevicesDetailed:
+      allOf:     # Combines the BasicErrorModel and the inline model
+        - $ref: '#/components/schemas/_linksDevices'
+        - type: object
+          required:
+            - annotation_params
+            - datarows
+            - meter_readings
+            - device_tariffs
+          properties:
+            ###  Neudefinition zur Einhaltung der Reihenfolge  ###
+            self: 
+              $ref: "#/components/schemas/hrefTypeDevice"
+            data:
+              $ref: "#/components/schemas/hrefTypeDataValues"
+            datarows:
+              $ref: "#/components/schemas/hrefTypeDatarows"
+            reading:
+              $ref: "#/components/schemas/hrefTypeReading"
+            life_data:
+             $ref: "#/components/schemas/hrefTypeLiveData"
+            values:
+              $ref: "#/components/schemas/hrefTypeSensorValues"
+            meter_readings:
+              $ref: "#/components/schemas/hrefTypeMeterReadings"
+            device_tariffs:
+              $ref: "#/components/schemas/hrefTypeDeviceTariffs"
+            data_marks:
+              $ref: "#/components/schemas/hrefTypeDataMarks"
+            annotation_params:
+              $ref: "#/components/schemas/hrefTypeAnnotationParams"
+              
+    DeviceList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Device'
+        
+    DeviceIdType:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          example: '408398AE3FD1'
+###########  Datarows #############
+    Datarow:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the data.
+          example: "156"
+        name:
+          type: string
+          description: The name of the data.
+          example: "rt_data"
+        t:
+          type: integer
+          description: The type of the data.
+          example: 4
+          enum: [1, 2, 3, 4, 5]
+        u:
+          type: string
+          description: The unit of measurement for the data.
+          example: "W"
+        cd:
+          type: string
+          format: date-time
+          description: The creation date of the data in ISO-8601 format.
+          example: "2023-04-29 16:06:41"
+        fk_device_id:
+          $ref: '#/components/schemas/DeviceBarebone/properties/deviceId'
+      required:
+        - id
+        - name
+        - t
+        - u
+        - cd
+        - fk_device_id
+    DatarowList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Datarow'
+    DatarowIdType:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: '160'
+###########  SENSOR VALUES ########
+    SensorValue:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1243212
+        val:
+          type: integer
+          example: 101
+        cd:
+          $ref: '#/components/schemas/Datetime'
+    SensorValueList:
+      type: array
+      items:
+        $ref: '#/components/schemas/SensorValue'
+    SensorValueIdType:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: '1243213'
+    SensorValueQuery:
+      type: string
+      description: Query parameter for filtering sensor values based on their ID
+      pattern: "id(>|<|>=|<=|==)[0-9]+"
+      minLength: 3
+      example: "id>=1243185"
+########### ELECTRICITY TARIFFS #############
+    ElectricityTariff:
+      type: object
+      required:
+        - id
+        - name
+        - label
+        - price
+        - one_time_charge
+        - ot_c_interval_months
+        - cd
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the electricity tariff
+          example: "2"
+        name:
+          type: string
+          description: The name of the electricity tariff
+          example: "Grün123"
+        label:
+          type: string
+          description: The label of the electricity tariff
+          example: "Grün123 (unbekannt) - 25.10 ct/kW + %u20AC 0.00 pro 0 Monate"
+        price:
+          type: string
+          description: The price of the electricity tariff per kW
+          example: "25.10"
+        one_time_charge:
+          type: string
+          description: The one-time charge of the electricity tariff
+          example: "0.00"
+        ot_c_interval_months:
+          type: string
+          description: The interval for the one-time charge of the electricity tariff
+          example: "0"
+        cd:
+          allOf:     # Combines the BasicErrorModel and the inline model
+            - $ref: '#/components/schemas/Datetime'
+            - description: The date and time the electricity tariff was created
+    ElectricityTariffList:
+      type: array
+      items:
+        $ref: '#/components/schemas/ElectricityTariff'
+########### DEVICE TARIFFS ################
+    DeviceTariff:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the device tariff.
+          example: "25"
+        tariff_id:
+          $ref: '#/components/schemas/ElectricityTariff/properties/id'
+        from:
+          allOf:
+            - $ref: '#/components/schemas/Datetime'
+            - description: The start timestamp of the device tariff.
+        to:
+          allOf:
+            - $ref: '#/components/schemas/Datetime'
+            - description: The end timestamp of the device tariff. If empty, the tariff is ongoing.
+        name:
+          type: string
+          description: The name of the device tariff.
+          example: "Grün123"
+        label:
+          type: string
+          description: The label of the device tariff.
+          example: "Grün123 (unbekannt) - 25.10 ct/kW + %u20AC 0.00 pro 0 Monate"
+        price:
+          type: string
+          description: The price of the device tariff.
+          example: "25.10"
+        one_time_charge:
+          type: string
+          description: The one-time charge of the device tariff.
+          example: "0.00"
+        ot_c_interval_months:
+          type: string
+          description: The interval in months for the one-time charge of the device tariff.
+          example: "0"
+        cd:
+          allOf:
+            - $ref: '#/components/schemas/Datetime'
+            - description: The creation timestamp of the device tariff.
+    DeviceTariffList:
+      type: array
+      items:
+        $ref: '#/components/schemas/DeviceTariff'
+    TariffLink:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "30"
+          description: The unique identifier of the tariff link.
+        tariff_id:
+          $ref: '#/components/schemas/DeviceTariff/properties/id'
+        from:
+          $ref: '#/components/schemas/Datetime'
+        to:
+          $ref: '#/components/schemas/Datetime'
+        name:
+          $ref: '#/components/schemas/DeviceTariff/properties/name'
+        label:
+          $ref: '#/components/schemas/DeviceTariff/properties/label'
+        price:
+          $ref: '#/components/schemas/DeviceTariff/properties/price'
+        one_time_charge:
+          $ref: '#/components/schemas/DeviceTariff/properties/one_time_charge'
+        ot_c_interval_months:
+          $ref: '#/components/schemas/DeviceTariff/properties/ot_c_interval_months'
+        cd:
+          $ref: '#/components/schemas/Datetime'
+########### ENERGY SUPPLIERS ###########
+    EnergySupplier:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "11"
+        type:
+          type: string
+          example: "1"
+        name:
+          type: string
+          example: "Grünwelt123"
+        country:
+          type: string
+          example: "de"
+        active:
+          type: string
+          example: "1"
+    EnergySupplierList:
+      type: array
+      items:
+        $ref: '#/components/schemas/EnergySupplier'
+########### ANNOTATIONS ###############
+    Wattage:
+      type: number
+      description: A wattage value with 3 decimal places
+      format: float
+      minimum: 0
+      multipleOf: 0.001
+      example: 123.255
+    Annotation:
+      type: object
+      properties:
+        annotationId:
+          type: string
+          description: The unique ID of the annotation
+          example: "43"
+        type:
+          type: string
+          description: The type of the annotation
+          example: "1"
+        t_from:
+          allOf:
+            - $ref: "#/components/schemas/Datetime"
+            - description: The start time of the annotation
+        t_to:
+          allOf:
+            - $ref: "#/components/schemas/Datetime"
+            - description: The end time of the annotation
+        min_val:
+          allOf:
+            - $ref: "#/components/schemas/Wattage"
+            - description: The minimum value of the annotation
+        max_val:
+         allOf:
+          - $ref: "#/components/schemas/Wattage"
+          - description: The maximum value of the annotation
+        fillColor:
+          type: string
+          description: The fill color of the annotation
+          example: "green"
+        opacity:
+          type: string
+          description: The opacity of the annotation
+          example: "0.2"
+        lineWidth:
+          type: string
+          description: The line width of the annotation
+          example: "0"
+        label:
+          type: string
+          description: The label text of the annotation
+          example: "{name} ({degree}%u2070, {duration}) - {consumption} kW/h ({costs}%u20AC)"
+        param:
+          type: string
+          description: A parameter object of the annotation
+          example: "{\r\n  \"name\": \"Sp%FClmaschine\",\r\n  \"degree\": \"65\",\r\n  \"duration\": \"108min\",\r\n  \"consumption\": \"0,76\",\r\n  \"costs\": \"0,24\"\r\n}"
+        cd:
+          allOf:
+            - $ref: "#/components/schemas/Datetime"
+            - description: The creation date of the annotation
+    AnnotationList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Annotation'
+###########  ERRORS  ##############
+    InvalidJsonError:
+      type: object
+      properties:
+        httpCode:
+          type: integer
+          example: 400
+        httpMessage:
+          type: string
+          example: Bad Request
+        moreInformation:
+          type: string
+          example: Format error Syntax error
+          
+    DeviceNotFoundError:
+      description: The requested device does not exist
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Device not found"
+      
+    DatarowNotFoundError:
+      description: The requested datarow does not exist
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Not found"
+          
+    AnnotationNotFoundError:
+      description: The requested annotation does not exist
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Not found"
+          
+    DeviceAlreadyRegisteredError:
+      description: This device already exists
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Device already registered"
+          
   securitySchemes:
-    name:
+    oauth2:
       type: oauth2
       flows:
         authorizationCode:
           authorizationUrl: https://auth.smart-vita.de/authorize
           tokenUrl: https://auth.smart-vita.de/token
           scopes:
-            read: device.read
-            write: device.write device.data.write
-#          oauth2RedirectUrl: https://my.smart-vita.de
-
+            device.read device.write device.data.write: Full access
+  parameters:
+    api-version:
+      in: path
+      name: api-version
+      schema:
+        type: string
+        default: services/2.0
+      required: true
+  
+security:
+  - oauth2: [device.read device.write device.data.write]
+tags:
+  - name: Devices
+  - name: Datarows
+  - name: Sensor values
+  - name: Appliances & Annotations
+  - name: Electricity Tariffs
+  - name: Energy Suppliers
+  - name: Device Tariffs
+paths:
+  /devices:
+    get:
+      tags:
+        - Devices
+      summary: Read all devices
+      responses:
+        '200':
+          description: Device Array successfully received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Devices
+      summary: Create device
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                sdName: 408398AE3FD1
+                sdLIP: smartVita-AE3FD1
+                drName: SV Device
+                drUnit: W
+                drType: 0
+                edTurnsCount: '75'
+                edTurns4Unit: '1000'
+                edName: '12345678'
+      responses:
+        '201':
+          description: Successfully created device
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/DeviceIdType'
+        '400':
+          $ref: '#/components/responses/InvalidJson'
+        '409':
+          description: This device already exists
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/DeviceAlreadyRegisteredError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /devices/{deviceId}:
+    get:
+      tags:
+        - Devices
+      summary: Read device details
+      parameters:
+        - name: deviceId
+          in: path
+          schema:
+            $ref: '#/components/schemas/DeviceIdType/properties/deviceId'
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/DeviceDetailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DeviceNotFound'
+    delete:
+      tags:
+        - Devices
+      summary: Remove device
+      parameters:
+        - name: deviceId
+          in: path
+          schema:
+            $ref: '#/components/schemas/DeviceIdType/properties/deviceId'
+          required: true
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '404':
+          $ref: '#/components/responses/DeviceNotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /device/{deviceId}/datarows:
+    post:
+      tags:
+        - Datarows
+      summary: Create Datarow for Device (path)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: rt_data
+                t: '4'
+                u: W
+      parameters:
+        - name: deviceId
+          in: path
+          schema:
+            $ref: '#/components/schemas/DeviceBarebone/properties/deviceId'
+          required: true
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/DatarowIdType'
+        '400':
+          $ref: '#/components/responses/InvalidJson'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DeviceNotFound'
+  /device/{deviceId}/datarows/search:
+    get:
+      tags:
+        - Datarows
+      summary: Read Datarows for Device
+      parameters:
+        - name: deviceId
+          in: path
+          schema:
+            $ref: '#/components/schemas/DeviceBarebone/properties/deviceId'
+          required: true
+        - in: query
+          name: dbg
+          schema:
+            type: string
+          required: false
+          description: Include debug information in the response
+          examples:
+            a_example:
+              value: print
+              summary: Include debug information in the response
+            b_example:
+              value:
+              summary: Do not include debug information in the response
+        - in: query
+          name: q
+          schema:
+            $ref: '#/components/schemas/DateQuery'
+          description: Filter parameter for 'cd' field
+          
+        - in: query
+          name: a
+          schema:
+            type: string
+          required: false
+          description: Specify the fields to be returned
+          examples:
+            a_example:
+              value: id,name
+              summary: Return only the 'id' and 'name' fields
+            b_example:
+              value: id,name,t,u,cd,fk_device_id
+              summary: Return all possible fields
+      responses:
+        '200':
+          description: Datarow Array for device successfully received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatarowList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DeviceNotFound'
+  /datarows/{datarowId}:
+    get:
+      tags:
+        - Datarows
+      summary: Read a single Datarow
+      parameters:
+        - name: datarowId
+          in: path
+          schema:
+            $ref : '#/components/schemas/DatarowIdType/properties/id'
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DatarowNotFound'
+    delete:
+      tags:
+        - Datarows
+      summary: Remove datarow
+      parameters:
+        - name: datarowId
+          in: path
+          schema:
+            $ref : '#/components/schemas/DatarowIdType/properties/id'
+          required: true
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DatarowNotFound'
+  /datarows/{datarowId}/sensorvalues:
+    post:
+      tags:
+        - Sensor values
+      summary: Add new sensor value
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                val:
+                  type: string
+                  example: "101"
+                t:
+                  type: string
+                  example: "4"
+                cd:
+                  $ref: "#/components/schemas/Datetime"
+      parameters:
+        - name: datarowId
+          in: path
+          schema:
+            $ref : '#/components/schemas/DatarowIdType/properties/id'
+          required: true
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/SensorValueIdType'
+        '400':
+          $ref: '#/components/responses/InvalidJson'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DatarowNotFound'
+  /datarows/{datarowId}/sensorvalues/search:
+    get:
+      tags:
+        - Sensor values
+      summary: read sensor values
+      parameters:
+        - name: datarowId
+          in: path
+          schema:
+            $ref : '#/components/schemas/DatarowIdType/properties/id'
+          required: true
+        - in: query
+          name: a
+          schema:
+            type: string
+          required: false
+          description: Specify the fields to be returned
+          examples:
+            a_example:
+              value: id
+              summary: Return only the 'id' field
+            b_example:
+              value: id,val,cd
+              summary: Return all possible fields
+        - in: query
+          name: q
+          schema:
+            $ref: '#/components/schemas/SensorValueQuery'
+      responses:
+        '200':
+          description: Sensor value Array for datarow successfully received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SensorValueList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DatarowNotFound'
+  /datarows/{datarowId}/annotations:
+    get:
+      tags:
+        - Appliances & Annotations
+      summary: List annotations of a datarow
+      parameters:
+        - name: datarowId
+          in: path
+          schema:
+            $ref : '#/components/schemas/DatarowIdType/properties/id'
+          required: true
+      responses:
+        '200':
+          description: Annotations Array successfully received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnotationList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DatarowNotFound'
+    post:
+      tags:
+        - Appliances & Annotations
+      summary: Create annotation for a datarow
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                type: 1
+                t_from: '2021-06-24 08:10:00'
+                t_to: '2021-06-24 10:00:00'
+                min_val: 123
+                max_val: 2435
+                fillColor: green
+                param: "{\r\n  \"name\": \"Sp%FClmaschine\",\r\n  \"degree\": \"65\",\r\n  \"duration\": \"108min\",\r\n  \"consumption\": \"0,76\",\r\n  \"costs\": \"0,24\"\r\n}"
+      parameters:
+        - name: datarowId
+          in: path
+          schema:
+            $ref : '#/components/schemas/DatarowIdType/properties/id'
+          required: true
+        - in: query
+          name: dbg
+          schema:
+            type: string
+          required: false
+          description: Include debug information in the response
+          examples:
+            a_example:
+              value: print
+              summary: Include debug information in the response
+            b_example:
+              value:
+              summary: Do not include debug information in the response
+      responses:
+        '201':
+          description: Successfully created annotation for datarow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+        '400':
+          $ref: '#/components/responses/InvalidJson'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DatarowNotFound'
+  /datarows/{datarowId}/annotations/search:
+    get:
+      tags:
+        - Appliances & Annotations
+      summary: Search annotations by date
+      parameters:
+        - name: datarowId
+          in: path
+          schema:
+            $ref : '#/components/schemas/DatarowIdType/properties/id'
+          required: true
+        - in: query
+          name: q
+          schema:
+            $ref: '#/components/schemas/QueryTimeframe'
+          description: Filter parameter for timeframe
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnotationList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DatarowNotFound'
+  /datarows/{datarowId}/annotations/{annotationId}:
+    get:
+      tags:
+        - Appliances & Annotations
+      summary: Get annotation by annotationId
+      parameters:
+        - name: datarowId
+          in: path
+          schema:
+            $ref : '#/components/schemas/DatarowIdType/properties/id'
+          required: true
+        - name: annotationId
+          in: path
+          schema:
+            $ref : '#/components/schemas/Annotation/properties/annotationId'
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DatarowOrAnnotationNotFound'
+          
+  /electricitytariffs:
+    get:
+      tags:
+        - Electricity Tariffs
+      summary: Get all electricity tariffs
+      responses:
+        '200':
+          description: Electricity Tariffs Array successfully received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ElectricityTariffList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /energysuppliers/{energySupplierId}/electricitytariffs:
+    post:
+      tags:
+        - Electricity Tariffs
+      summary: Create new electricity tariff
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: Test
+                price: 30.5
+                one_time_charge: 20
+                ot_c_interval_months: 1
+      parameters:
+        - name: energySupplierId
+          in: path
+          schema:
+            $ref : '#/components/schemas/EnergySupplier/properties/id'
+          required: true
+        - in: query
+          name: dbg
+          schema:
+            type: string
+          required: false
+          description: Include debug information in the response
+          examples:
+            a_example:
+              value: print
+              summary: Include debug information in the response
+            b_example:
+              value:
+              summary: Do not include debug information in the response
+      responses:
+        '201':
+          description: Electricity tariff successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ElectricityTariff'
+        '400':
+          $ref: '#/components/responses/InvalidJson'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /energysuppliers:
+    get:
+      tags:
+        - Energy Suppliers
+      summary: Get all energy suppliers
+      responses:
+        '200':
+          description: Energy Suppliers Array successfully received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnergySupplierList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Energy Suppliers
+      summary: Create energy supplier
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: Grünwelt
+                type: 1
+                country: de
+      responses:
+        '200':
+          description: Enery Supplier successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnergySupplier'
+        '400':
+          $ref: '#/components/responses/InvalidJson'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /datarows/{datarowId}/devicetariffs:
+    get:
+      tags:
+        - Device Tariffs
+      summary: Get electricity tariff link from datarow
+      parameters:
+        - name: datarowId
+          in: path
+          schema:
+            $ref : '#/components/schemas/DatarowIdType/properties/id'
+          required: true
+      responses:
+        '200':
+          description: Device tarriff Array successfully received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceTariffList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DatarowNotFound'
+    post:
+      tags:
+        - Device Tariffs
+      summary: Create electricity tariff link for data row
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tariff_id:
+                  $ref : '#/components/schemas/ElectricityTariff/properties/id'
+                from:
+                  $ref : '#/components/schemas/IsoDatetime'
+                to:
+                  $ref : '#/components/schemas/IsoDatetime'
+      parameters:
+        - name: datarowId
+          in: path
+          schema:
+            $ref : '#/components/schemas/DatarowIdType/properties/id'
+          required: true
+        - in: query
+          name: dbg
+          schema:
+            type: string
+          required: false
+          description: Include debug information in the response
+          examples:
+            a_example:
+              value: print
+              summary: Include debug information in the response
+            b_example:
+              value:
+              summary: Do not include debug information in the response
+      responses:
+        '201':
+          description: Successfully created tariff link
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TariffLink'
+        '400':
+          $ref: '#/components/responses/InvalidJson'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DatarowNotFound'
