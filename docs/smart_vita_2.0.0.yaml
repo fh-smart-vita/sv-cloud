@@ -33,13 +33,15 @@ components:
       content:
         application/json: 
           schema:
-            $ref: '#/components/schemas/DatarowNotFoundError'
+            $ref: '#/components/schemas/NotFoundError'
+            #$ref: '#/components/schemas/DatarowNotFoundError'
     AnnotationNotFound:
       description: Annotation not found
       content:
         application/json: 
           schema:
-            $ref: '#/components/schemas/AnnotationNotFoundError'
+            $ref: '#/components/schemas/NotFoundError'
+            #$ref: '#/components/schemas/AnnotationNotFoundError'
     InvalidJson:
       description: Syntax error in the request body
       content:
@@ -51,9 +53,17 @@ components:
       content:
         application/json: 
           schema:
-            oneOf:
-              - $ref: '#/components/schemas/DatarowNotFoundError'
-              - $ref: '#/components/schemas/AnnotationNotFoundError'
+            $ref: '#/components/schemas/NotFoundError'
+          #Differentiation should be added throughout the way
+          #  oneOf:
+          #    - $ref: '#/components/schemas/DatarowNotFoundError'
+          #    - $ref: '#/components/schemas/AnnotationNotFoundError'
+    KPINotFound:
+      description: KPI not found
+      content:
+        application/json: 
+          schema:
+            $ref: '#/components/schemas/NotFoundError'
     NoContent:
       description: No content, operation successful
   schemas:
@@ -676,6 +686,58 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Annotation'
+############# DASHBOARD KPIS #############
+    DashboardKPICreation:
+      type: object
+      required:
+        - name
+        - unit
+        - icon
+        - url
+      properties:
+        name:
+          $ref: "#/components/schemas/DashboardKPI/properties/name"
+        unit:
+          $ref: "#/components/schemas/DashboardKPI/properties/unit"
+        icon:
+          $ref: "#/components/schemas/DashboardKPI/properties/icon"
+        url:
+          $ref: "#/components/schemas/DashboardKPI/properties/_links/properties/url/properties/href"
+    DashboardKPI:
+      type: object
+      properties:
+        kpiId:
+          type: string
+          example: "8"
+          description: The unique identifier of the KPI
+        name:
+          type: string
+          example: "Verbrauch"
+          description: The name of the KPI
+        unit:
+          type: string
+          example: "kWh"
+          description: The unit of measurement for the KPI
+        icon:
+          type: string
+          example: "fa-solid fa-bolt"
+          description: The icon representing the KPI
+        deviceId:
+          $ref: "#/components/schemas/DeviceBarebone/properties/deviceId"
+        _links:
+          type: object
+          properties:
+            url:
+              type: object
+              properties:
+                href:
+                  type: string
+                  example: "/random?n=10000"
+                  description: The associated URL of the KPI
+    DashboardKPIList:
+      type: array
+      items:
+        $ref: '#/components/schemas/DashboardKPI'
 ###########  ERRORS  ##############
     InvalidJsonError:
       type: object
@@ -698,21 +760,40 @@ components:
           type: string
           example: "Device not found"
       
-    DatarowNotFoundError:
-      description: The requested datarow does not exist
-      type: object
-      properties:
-        error:
-          type: string
-          example: "Not found"
+    #DatarowNotFoundError:
+    #  description: The requested datarow does not exist
+    #  type: object
+    #  properties:
+    #    error:
+    #      type: string
+    #      example: "Not found"
           
-    AnnotationNotFoundError:
-      description: The requested annotation does not exist
+    #AnnotationNotFoundError:
+    #  description: The requested annotation does not exist
+    #  type: object
+    #  properties:
+    #    error:
+    #      type: string
+    #      example: "Not found"
+          
+    NotFoundError:
       type: object
+      description: Error for requesting a non-existent resource
       properties:
-        error:
+        httpCode:
+          type: integer
+          example: 404
+          description: The HTTP status code for the error.
+        httpMessage:
           type: string
           example: "Not found"
+          description: The HTTP message for the error.
+        moreInformation:
+          type: string
+          example: "Not found"
+          description: Additional information about the error.
+
+
           
     DeviceAlreadyRegisteredError:
       description: This device already exists
@@ -739,6 +820,7 @@ components:
         type: string
         default: services/2.0
       required: true
+
   
 security:
   - oauth2: [device.read device.write device.data.write]
@@ -750,6 +832,7 @@ tags:
   - name: Electricity Tariffs
   - name: Energy Suppliers
   - name: Device Tariffs
+  - name: Dashboard KPIs
 paths:
   /devices:
     get:
@@ -789,6 +872,26 @@ paths:
             application/json: 
               schema:
                 $ref: '#/components/schemas/DeviceAlreadyRegisteredError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /devices/findbyname:
+    get:
+      tags:
+        - Devices
+      summary: Find device by sdName property
+      parameters:
+        - name: sdname
+          in: query
+          schema:
+            $ref: '#/components/schemas/DeviceBarebone/properties/sdName'
+          required: true
+      responses:
+        '200':
+          description: Device successfully received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceDetailed'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /devices/{deviceId}:
@@ -1293,3 +1396,96 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/DatarowNotFound'
+################################################################################
+  /device/{deviceId}/dashboardkpis:
+    post:
+      tags:
+        - Dashboard KPIs
+      summary: Create KPI for a Device
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DashboardKPICreation'
+      parameters:
+        - name: deviceId
+          in: path
+          schema:
+            $ref: '#/components/schemas/DeviceBarebone/properties/deviceId'
+          required: true
+      responses:
+        '201':
+          description: Successfully created KPI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardKPI'
+        '400':
+          $ref: '#/components/responses/InvalidJson'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DeviceNotFound'
+  /devices/{deviceId}/dashboardkpis:
+    get:
+      tags:
+        - Dashboard KPIs
+      summary: Read KPIs for a Device
+      parameters:
+        - name: deviceId
+          in: path
+          schema:
+            $ref: '#/components/schemas/DeviceBarebone/properties/deviceId'
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/DashboardKPIList'
+        '400':
+          $ref: '#/components/responses/InvalidJson'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/DeviceNotFound'
+  /dashboardkpis/{kpiId}:
+    get:
+      tags:
+        - Dashboard KPIs
+      summary: Read a KPI
+      parameters:
+        - name: kpiId
+          in: path
+          schema:
+            $ref: '#/components/schemas/DashboardKPI/properties/kpiId'
+          required: true
+      responses:
+        '200':
+          description: Successfully read KPI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardKPI'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/KPINotFound'
+    delete:
+      tags:
+        - Dashboard KPIs
+      summary: Remove a KPI
+      parameters:
+        - name: kpiId
+          in: path
+          schema:
+            $ref: '#/components/schemas/DashboardKPI/properties/kpiId'
+          required: true
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/KPINotFound'
