@@ -67,7 +67,7 @@ components:
     NoContent:
       description: No content, operation successful
   schemas:
-#####  DATE #########
+#####  DATE AND TEMPERATURE #########
     Datetime:
       type: string
       description: Datetime format
@@ -93,6 +93,32 @@ components:
       type: string
       pattern: '^t_from>[0-9]{8}\+t_to<[0-9]{8}$'
       example: 't_from>20210416+t_to<20210419'
+    TempCelsius:
+      type: string
+      pattern: "^-?\\d{1,2}(\\.\\d)?$"
+      description: A temperature in degrees Celsius, ranging from -99.9 to 99.9
+      example: "25.5"
+    TempTime:
+      type: object
+      properties:
+        time:
+          $ref: '#/components/schemas/Datetime'
+        temp_c:
+          $ref: '#/components/schemas/TempCelsius'
+      required:
+        - time
+        - temp_c
+    TempTimeList:
+      type: array
+      items:
+        $ref: '#/components/schemas/TempTime'
+      example:
+        - time: "2023-05-25 00:00:00"
+          temp_c: 21
+        - time: "2023-05-25 01:00:00"
+          temp_c: 22
+        - time: "2023-05-25 02:00:00"
+          temp_c: 20
 
 
 ##########  DEVICES  ##########
@@ -185,7 +211,7 @@ components:
       properties:
         href:
           type: string
-          example: "/devices/408398AE3FD1"
+          example: "/devices/100"
         
     hrefTypeDataValues:
       description: Object holding a link to a data values resource.
@@ -250,6 +276,22 @@ components:
         href:
           type: string
           example: "/datarows/125/annotations"
+          
+    hrefTypeRtData:
+      description: Object holding a link to a realtime datarow's sensorvalues.
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/datarows/156/sensorvalues"
+          
+    hrefTypeKpis:
+      description: Object holding a link to the device's kpis.
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/devices/100/dashboardkpis"
         
     hrefTypeAnnotationParams:
       description: Object holding a link to an annotation params resource.
@@ -274,6 +316,8 @@ components:
       properties:
         self: 
           $ref: "#/components/schemas/hrefTypeDevice"
+        kpis: 
+          $ref: "#/components/schemas/hrefTypeKpis"
         data:
           $ref: "#/components/schemas/hrefTypeDataValues"
         reading:
@@ -284,8 +328,10 @@ components:
           $ref: "#/components/schemas/hrefTypeSensorValues"
         data_marks:
           $ref: "#/components/schemas/hrefTypeDataMarks"
+        rt_data:
+          $ref: "#/components/schemas/hrefTypeRtData"
     _linksDevicesDetailed:
-      allOf:     # Combines the BasicErrorModel and the inline model
+      allOf:     # Kombiniert das BasicErrorModel und das inline model
         - $ref: '#/components/schemas/_linksDevices'
         - type: object
           required:
@@ -297,6 +343,8 @@ components:
             ###  Neudefinition zur Einhaltung der Reihenfolge  ###
             self: 
               $ref: "#/components/schemas/hrefTypeDevice"
+            kpis: 
+              $ref: "#/components/schemas/hrefTypeKpis"
             data:
               $ref: "#/components/schemas/hrefTypeDataValues"
             datarows:
@@ -315,6 +363,8 @@ components:
               $ref: "#/components/schemas/hrefTypeDataMarks"
             annotation_params:
               $ref: "#/components/schemas/hrefTypeAnnotationParams"
+            rt_data:
+              $ref: "#/components/schemas/hrefTypeRtData"
               
     DeviceList:
       type: array
@@ -802,7 +852,7 @@ components:
         error:
           type: string
           example: "Device already registered"
-          
+
   securitySchemes:
     oauth2:
       type: oauth2
@@ -833,6 +883,7 @@ tags:
   - name: Energy Suppliers
   - name: Device Tariffs
   - name: Dashboard KPIs
+  - name: Weather
 paths:
   /devices:
     get:
@@ -1489,3 +1540,17 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/KPINotFound'
+  /weatherinfo:
+    get:
+      tags:
+        - Weather
+      summary: Read hourly temperature in degrees celsius of the current day based on the users location
+      responses:
+        '200':
+          description: Successfully read temperatures
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TempTimeList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
