@@ -449,9 +449,16 @@ components:
           example: 101
           description: Value of the sensor reading
         t:
-          type: string
-          example: "4"
-          description: Type of the sensor value
+          type: integer
+          description: |
+            SensorValue type
+            * '3':
+              D0 meter
+            * '4':
+              Ferraris meter
+          enum:
+            - 3
+            - 4
         fk_datarows_id:
           $ref: '#/components/schemas/Datarow/properties/id'
     SensorValueList:
@@ -464,6 +471,34 @@ components:
       pattern: "id(>|<|>=|<=|==)[0-9]+"
       minLength: 3
       example: "id>=1243185"
+      
+    DataValue:
+      type: object
+      properties:
+        dv_id:
+          type: integer
+          example: "1243372"
+        dv_value:
+          type: number
+          format: float
+          example: "461538.46"
+        dv_amount:
+          type: integer
+          example: "1"
+        dv_ts:
+          $ref: '#/components/schemas/Datetime'
+        et_p_kw:
+          type: number
+          format: float
+          example: "31.09"
+        ed_turns_count:
+          type: integer
+          example: "75"
+          
+    DataValueList:
+      type: array
+      items:
+        $ref: '#/components/schemas/DataValue'
 ########### ELECTRICITY TARIFFS #############
     ElectricityTariffCreation:
       type: object
@@ -1090,7 +1125,7 @@ paths:
     delete:
       tags:
         - Datarows
-      summary: Remove datarow
+      summary: Remove a datarow
       parameters:
         - name: datarowId
           in: path
@@ -1104,6 +1139,27 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/DatarowNotFound'
+  /datarows/{datarowId}/alldatavalues:
+    get:
+      tags:
+        - Datarows
+      summary: Read all data values from a datarow
+      description: The datarow needs an active tariff link for the timeframe or the response will always be empty!
+      parameters:
+        - name: datarowId
+          in: path
+          schema:
+            $ref : '#/components/schemas/Datarow/properties/id'
+          required: true
+      responses:
+        '200':
+          description: Received data values. If response is empty, check back with the description.
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/DataValueList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /datarows/{datarowId}/sensorvalues:
     post:
       tags:
