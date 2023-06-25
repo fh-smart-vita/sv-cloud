@@ -160,13 +160,18 @@ components:
           description: |
             Device type
             * '0':
-              analog electricity meter
+              Ferraris electricity device
             * '1':
               S0 electricity device
+            * '2':
+              D0 electricity device
+            * '3':
+              Gas meter (pulse generator)
           enum:
             - 0
             - 1
             - 2
+            - 3
         cd:
           type: string
           format: date-time
