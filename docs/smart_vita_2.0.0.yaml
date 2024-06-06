@@ -67,7 +67,7 @@ components:
     NoContent:
       description: No content, operation successful
   schemas:
-#####  DATE AND TEMPERATURE #########
+  #####  DATE AND TEMPERATURE #########
     Datetime:
       type: string
       description: Datetime format
@@ -916,6 +916,7 @@ security:
   - oauth2: [device.read device.write device.data.write]
 tags:
   - name: Devices
+    description: custom built, essentially an electricity meter
   - name: Datarows
   - name: Sensor values
   - name: Appliances & Annotations
@@ -924,7 +925,45 @@ tags:
   - name: Device Tariffs
   - name: Dashboard KPIs
   - name: Weather
+  - name: Smart Home Devices
+    description: templates for lamp, fridge, Shelly Plug etc., admin-dictated, same for all users
 paths:
+  /smh-devices:
+    get:
+      tags:
+        - Smart Home Devices
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: '1'
+                    type:
+                      type: string
+                      example: '1'
+                    name:
+                      type: string
+                      example: 'Shelly Plug S'
+                    description:
+                      type: string
+                      example: 'A Shelly Plug S device type"'
+                    icon:
+                      type: string
+                      example: 'fa fa-snowflake-o'
+                    label:
+                      type: string
+                      example: null
+                    cd:
+                      type: string
+                      example: '2024-05-02 17:54:44'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /devices:
     get:
       tags:
