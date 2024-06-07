@@ -6,6 +6,12 @@ servers:
   - url: https://api.smart-vita.de/services/2.0
 components:
   responses:
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotFoundError'
     Unauthorized:
       description: The request requires authentication and the user is not authenticated. Please check the authentication credentials and try again.
       content:
@@ -119,9 +125,7 @@ components:
           temp_c: 22
         - time: "2023-05-25 02:00:00"
           temp_c: 20
-
-
-##########  DEVICES  ##########
+  ##########  DEVICES  ##########
     Device:
       allOf:     # Combines the BasicErrorModel and the inline model
         - $ref: '#/components/schemas/DeviceBarebone'
@@ -209,7 +213,7 @@ components:
         - edTurnsCount
         - edTurns4Unit
         - edName
-##########  HREF TYPES  ##########
+  ##########  HREF TYPES  ##########
     hrefTypeDevice:
       description: Object holding a link to a device resource.
       type: object
@@ -305,8 +309,7 @@ components:
         href:
           type: string
           example: "/datarows/125/alldatavalues/search?a=round(max(dv_value)\\,2),round(min(dv_value)\\,2),round(sum(dv_amount/ed_turns_count)-count(*)*time_to_sec(timediff(max(ts)\\,min(ts)))/60/60*min(dv_value)/count(*)/1000\\,2),round((sum(dv_amount/ed_turns_count)-count(*)*time_to_sec(timediff(max(ts)\\,min(ts)))/60/60*min(dv_value)/count(*)/1000)*et_p_kw/100\\,2)"
-
-##########  Devicelinks  ##########
+  ##########  Devicelinks  ##########
     _linksDevices:
       description: |
         A list of hyperlinks to be recognised by the consumer
@@ -375,8 +378,7 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Device'
-        
-###########  Datarows #############
+  ###########  Datarows #############
     DatarowCreation:
       type: object
       properties:
@@ -424,7 +426,7 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Datarow'
-###########  SENSOR VALUES ########
+  ###########  SENSOR VALUES ########
     SensorValueCreation:
       type: object
       required:
@@ -504,7 +506,7 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/DataValue'
-########### ELECTRICITY TARIFFS #############
+  ########### ELECTRICITY TARIFFS #############
     ElectricityTariffCreation:
       type: object
       required:
@@ -564,7 +566,7 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/ElectricityTariff'
-########### DEVICE TARIFFS ################
+  ########### DEVICE TARIFFS ################
     DeviceTariff:
       type: object
       properties:
@@ -652,7 +654,7 @@ components:
           $ref: '#/components/schemas/DeviceTariff/properties/ot_c_interval_months'
         cd:
           $ref: '#/components/schemas/Datetime'
-########### ENERGY SUPPLIERS ###########
+  ########### ENERGY SUPPLIERS ###########
     EnergySupplierCreation:
       type: object
       required:
@@ -688,7 +690,7 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/EnergySupplier'
-########### ANNOTATIONS ###############
+  ########### ANNOTATIONS ###############
     Wattage:
       type: number
       description: A wattage value with 3 decimal places
@@ -776,7 +778,7 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Annotation'
-############# DASHBOARD KPIS #############
+  ############# DASHBOARD KPIS #############
     DashboardKPICreation:
       type: object
       required:
@@ -828,7 +830,33 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/DashboardKPI'
-###########  ERRORS  ##############
+  ###########  Smart Home Devices  ##############
+    smh-device:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '1'
+        type:
+          type: string
+          example: '1'
+        name:
+          type: string
+          example: 'Shelly Plug S'
+        description:
+          type: string
+          example: 'A Shelly Plug S device type"'
+        icon:
+          type: string
+          example: 'fa fa-snowflake-o'
+        label:
+          type: string
+          description: 'Work in progress'
+          example: null
+        cd:
+          type: string
+          example: '2024-05-02 17:54:44'  
+  ###########  ERRORS  ##############
     InvalidJsonError:
       type: object
       properties:
@@ -892,7 +920,7 @@ components:
         error:
           type: string
           example: "Device already registered"
-
+          
   securitySchemes:
     oauth2:
       type: oauth2
@@ -916,7 +944,7 @@ security:
   - oauth2: [device.read device.write device.data.write]
 tags:
   - name: Devices
-    description: custom built, essentially an electricity meter
+    description: custom built Iot device, installed on electricity meter, writes to our backend 
   - name: Datarows
   - name: Sensor values
   - name: Appliances & Annotations
@@ -934,34 +962,96 @@ paths:
         - Smart Home Devices
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      example: '1'
-                    type:
-                      type: string
-                      example: '1'
-                    name:
-                      type: string
-                      example: 'Shelly Plug S'
-                    description:
-                      type: string
-                      example: 'A Shelly Plug S device type"'
-                    icon:
-                      type: string
-                      example: 'fa fa-snowflake-o'
-                    label:
-                      type: string
-                      example: null
-                    cd:
-                      type: string
-                      example: '2024-05-02 17:54:44'
+                  $ref: '#/components/schemas/smh-device'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Smart Home Devices
+      requestBody:
+        description: Creates new smart home device template, if type - name combination is unique.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/smh-device'
+      responses:
+        '200':
+          description: OK (Smart home device already exists)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/smh-device'
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/smh-device'
+        '400':
+          $ref: '#/components/responses/InvalidJson'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /smh-devices/{deviceId}:
+    get:
+      parameters:
+        - in: path
+          name: deviceId
+          schema:
+            type: string
+          required: true
+      tags:
+        - Smart Home Devices
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/smh-device'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      parameters:
+        - in: path
+          name: deviceId
+          schema:
+            type: string
+          required: true
+      tags:
+        - Smart Home Devices
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /smh-devices/search:
+    get:
+      summary: get smart home device by name. TODO -> find out if parameter needs url encoding
+      parameters:
+      - in: query
+        name: name
+        schema:
+          type: string
+        required: true
+      tags:
+        - Smart Home Devices
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/smh-device'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /devices:
