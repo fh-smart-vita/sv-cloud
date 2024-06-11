@@ -1,6 +1,8 @@
 openapi: 3.0.0
 info:
   title: smartVita
+  description: |
+    - If you are wondering why some attribute in a response example etc. exists, try checking the schemas below for a description
   version: 1.0.0
 servers:
   - url: https://api.smart-vita.de/services/2.0
@@ -830,7 +832,7 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/DashboardKPI'
-  ###########  Smart Home Devices  ##############
+  ###########  Smart Home Devices (template)  ##############
     smh-device:
       type: object
       properties:
@@ -851,11 +853,122 @@ components:
           example: 'fa fa-snowflake-o'
         label:
           type: string
-          description: 'Work in progress'
+          description: 'Work in progress, eventually for annotations (popup text) in charts'
           example: null
         cd:
           type: string
           example: '2024-05-02 17:54:44'  
+  ###########Actions##############      
+    action:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '1'
+        kind:
+          type: string
+          description: "can be 'action' like turning on a lamp or 'state' like reading the current energy consumption"
+          example: 'action'
+        name:
+          type: string
+          example: 'on'
+        value:
+          type: string
+          example: '/relay/0'
+        param:
+          type: string
+          example: 'turn=on'
+        return_key:
+          type: string
+          description: "Key to desired value in the response body from the unique Smart Home Device api. Example: Shelli's api responds with a JSON object {some keys... power: 'value we want' ...more keys}. In this case, return_key would be 'power'."
+          example: 'null'
+  ##########User SH Devices##########
+    user-smh-device:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "7"
+        type:
+          type: string
+          example: "1"
+        name:
+          type: string
+          example: "Shelly Plug-S Wohnzimmer"
+        description:
+          type: string
+          example: "Mein Shelly Plug S Licht im Wohnzimmer"
+        ip:
+          type: string
+          example: "192.168.1.103"
+        params:
+          type: string
+          nullable: true
+          example: null
+        _links:
+          type: object
+          properties:
+            k-action-off:
+              type: object
+              properties:
+                href:
+                  type: string
+                  example: "http://192.168.1.103/relay/0?turn=off"
+            k-action-on:
+              type: object
+              properties:
+                href:
+                  type: string
+                  example: "http://192.168.1.103/relay/0?turn=on"
+            k-action-test:
+              type: object
+              properties:
+                href:
+                  type: string
+                  example: "http://192.168.1.103/relay/0?turn=off"
+            k-action-toggle:
+              type: object
+              properties:
+                href:
+                  type: string
+                  example: "http://192.168.1.103/relay/0?turn=toggle"
+            k-state-onoff:
+              type: object
+              properties:
+                href:
+                  type: string
+                  example: "http://192.168.1.103/relay/0"
+            k-state-power:
+              type: object
+              properties:
+                href:
+                  type: string
+                  example: "http://192.168.1.103/meter/0"
+        labels:
+          type: array
+          items:
+            type: string
+          example: []
+  ##############Smart Home Device Labels#############
+    user-smh-device-label:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "9"
+        type:
+          type: string
+          example: "2"
+        name:
+          type: string
+          example: "Beleuchtung"
+        description:
+          type: string
+          example: "Ein Label für alle Smart Home Devices mit Beleuchtungsfunktion"
+        cd:
+          type: string
+          format: date-time
+          example: "2024-06-06 11:30:52"
   ###########  ERRORS  ##############
     InvalidJsonError:
       type: object
@@ -920,7 +1033,7 @@ components:
         error:
           type: string
           example: "Device already registered"
-          
+  ################Errors end##################          
   securitySchemes:
     oauth2:
       type: oauth2
@@ -938,13 +1051,12 @@ components:
         type: string
         default: services/2.0
       required: true
-
   
 security:
   - oauth2: [device.read device.write device.data.write]
 tags:
   - name: Devices
-    description: custom built Iot device, installed on electricity meter, writes to our backend 
+    description: "custom built Iot device, installed on electricity meter, writes to our backend" 
   - name: Datarows
   - name: Sensor values
   - name: Appliances & Annotations
@@ -953,13 +1065,22 @@ tags:
   - name: Device Tariffs
   - name: Dashboard KPIs
   - name: Weather
-  - name: Smart Home Devices
-    description: templates for lamp, fridge, Shelly Plug etc., admin-dictated, same for all users
+  - name: Smart Home Devices (template)
+    description: "templates for lamp, fridge, Shelly Plug etc., admin-dictated, same for all users"
+  - name: Actions
+    description: "Extends the Smart Home Devices (template) with action template like turning off a smart lamp. Smart Home Devices from different vendors like Shelli have unique apis. Actions act as an adapter, so the frontend doesn't need extra code for every vendor."
+  - name: User SH Devices
+    description: Instance of the "Smart Home Devices - Actions" template, represents and actual Device.
+  - name: Smart Home Device Labels
+    description: "type attribute has nothing to do with type attribute in other endpoints. Type 1 = Room, Type 2 = group, others are currently not in use"
+  - name: User Smart Home Device Label Links
+    description: "Array with ids referencing Labels"
 paths:
+##########Smart Home Devices (template) Tag######################
   /smh-devices:
     get:
       tags:
-        - Smart Home Devices
+        - Smart Home Devices (template)
       responses:
         '200':
           description: OK
@@ -973,9 +1094,9 @@ paths:
           $ref: '#/components/responses/Unauthorized'
     post:
       tags:
-        - Smart Home Devices
+        - Smart Home Devices (template)
       requestBody:
-        description: Creates new smart home device template, if type - name combination is unique.
+        description: Creates new smart home device template, if type and name are unique.
         content:
           application/json:
             schema:
@@ -1006,7 +1127,35 @@ paths:
             type: string
           required: true
       tags:
-        - Smart Home Devices
+        - Smart Home Devices (template)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/smh-device'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      parameters:
+        - in: path
+          name: deviceId
+          schema:
+            type: string
+          required: true
+      tags:
+      - Smart Home Devices (template)
+      requestBody:
+        description: "Change one or more attributes. Will not respond with error code if attribute is mistyped, like 'namefnien': 'Shelly new Name' will return OK, but not change the name!"
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/smh-device'
+              
       responses:
         '200':
           description: OK
@@ -1026,34 +1175,362 @@ paths:
             type: string
           required: true
       tags:
-        - Smart Home Devices
+        - Smart Home Devices (template)
       responses:
         '204':
-          description: No Content
+          description: "No Content (successfully deleted)"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
   /smh-devices/search:
     get:
-      summary: get smart home device by name. TODO -> find out if parameter needs url encoding
+      summary: Get smart home device by attribute. TODO -> find out if parameter needs url encoding, if multiple parameters are possible encapsulated in q, generally unclear
+      description: Responds like successful GET /smh-devices if parameter isn't provided, responds with empty array if match isn't found.
       parameters:
       - in: query
-        name: name
+        name: q
         schema:
           type: string
-        required: true
+        required: false
+        description: Works a little weird, pass attribute to look for like this -> /smh-devices/search?q=name=Shelly Plug S
       tags:
-        - Smart Home Devices
+        - Smart Home Devices (template)
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/smh-device'
+                type: array
+                items:
+                  $ref: '#/components/schemas/smh-device'
         '401':
           $ref: '#/components/responses/Unauthorized'
+          
+#################Actions Tag#####################
+  /smh-devices/{deviceId}/shd-actions:
+    get:
+      parameters:
+        - in: path
+          name: deviceId
+          schema:
+            type: string
+          required: true
+      tags:
+        - Actions
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/action'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Creates new action template for the smart home device template
+      parameters:
+        - in: path
+          name: deviceId
+          schema:
+            type: string
+          required: true
+      tags:
+        - Actions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/smh-device'
+      responses:
+        '200':
+          description: OK (action already exists)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/action'
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/action'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /smh-actions/{deviceActionId}:
+    patch:
+      parameters:
+        - in: path
+          name: deviceActionId
+          schema:
+            type: string
+          required: true
+      tags:
+        - Actions
+      requestBody:
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: "off"
+                  value:
+                    type: string
+                    example: "/relay/0"
+                  param:
+                    type: string
+                    example: "turn=off"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/action'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      parameters:
+        - in: path
+          name: deviceActionId
+          schema:
+            type: string
+          required: true
+      tags:
+        - Actions
+      responses:
+        '204':
+          description: No Content (successfully deleted)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+################User SH Devices Tag##################
+  /user-smh-devices:
+    description: "type is unique and refers to a 'Smart Home Devices -Actions' template"
+    get:
+      tags:
+        - User SH Devices
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/user-smh-device'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - User SH Devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string #note that this attribute is named "type"
+                  example: "1"
+                name:
+                  type: string
+                  example: "Shelly Plug-S Wohnzimmer"
+                description:
+                  type: string
+                  example: "Mein Shelly Plug S Licht im Wohnzimmer"
+                ip:
+                  type: string
+                  example: "192.168.1.103"
+      responses:
+        '201':
+          description: "Created"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user-smh-device'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+##############Smart Home Device Labels#############
+  /shd-labels:
+    get:
+      tags:
+        - Smart Home Device Labels
+      responses:
+        '200':
+          description: "OK (type attribute has nothing to do with type attribute in other endpoints. Type 1 stands for a room, everything else stands for a group)"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/user-smh-device-label'
+    post:
+      tags:
+        - Smart Home Device Labels
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: "2"
+                name:
+                  type: string
+                  example: "Beleuchtung"
+                description:
+                  type: string
+                  example: "Ein Label für alle Smart Home Devices mit Beleuchtungsfunktion"
+      responses:
+        '200':
+          description: "OK (already exists)"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user-smh-device-label'
+        '201':
+          description: "Created"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user-smh-device-label'
+  /shd-labels/{lableId}:
+    patch:
+      tags:
+        - Smart Home Device Labels
+      parameters:
+        - in: path
+          name: lableId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  example: "Ein Label für alle Smart Home Devices mit Beleuchtungsfunktion"
+      responses:
+        '200':
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user-smh-device-label'
+          
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Smart Home Device Labels
+      parameters:
+        - in: path
+          name: lableId
+          schema:
+            type: string
+          required: true
+      responses:
+        '204':
+          description: "No Content (successfully deleted)"
+        '404':
+          $ref: '#/components/responses/NotFound'
+  ################User Smart Home Device Label Links Tags################
+  /user-smh-devices/{usmhdId}/smhd-labels:
+    get:
+      summary: Get List of Labels of user smart home device
+      tags:
+        - User Smart Home Device Label Links
+      parameters:
+        - in: path
+          name: usmhdId
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Device Array successfully received
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/user-smh-device-label'
+        '404':
+          $ref: '#/components/responses/NotFound'  
+    post:
+      summary: Places a label reference in user smart home device
+      tags:
+        - User Smart Home Device Label Links
+      parameters:
+        - in: path
+          name: usmhdId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shd_label_id:
+                    type: string
+                    example: 5
+      responses:
+        '200':
+          description: "OK (already exists)"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user-smh-device-label'
+        '201':
+          description: "Created"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user-smh-device-label'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+  /user-smh-devices/{usmhdId}/smhd-labels/{smhdlId}:
+    delete:
+      summary: "deletes the reference"
+      tags:
+        - User Smart Home Device Label Links
+      parameters:
+        - in: path
+          name: usmhdId
+          schema:
+            type: string
+          required: true
+          description: "id of the user smart home device"
+        - in: path
+          name: smhdlId
+          schema:
+            type: string
+          required: true
+          description: "id of the label"
+      responses:
+        '204':
+          description: "No Content (successfully deleted)"
+        '404':
+          $ref: '#/components/responses/NotFound'
+#
   /devices:
     get:
       tags:
