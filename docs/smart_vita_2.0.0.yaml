@@ -876,9 +876,10 @@ components:
           type: string
           description: "The backend will automatically parse the parameters in {} for User SH Devices, based on the 'params' attribute in a User SH Device"
           example: '{http}://{ip}/relay/0?turn=on'
-        param:
+        regex:
           type: string
-          example: ''
+          description: "use to extract the desired values from the response of the api of whatever device type (Shelly, Homematic etc) this action is referenced by "
+          example: "(?<=\"power\":)(?:\\d*\\.?\\d*)"
         return_key:
           type: string
           description: "Key to desired value in the response body from the unique SH Device api. Example: Shelli's api responds with a JSON object {some keys... power: 'value we want' ...more keys}. In this case, return_key would be 'power'."
@@ -1194,7 +1195,8 @@ paths:
           $ref: '#/components/responses/NotFound'
   /smh-devices/search:
     get:
-      summary: Get List of SH Device types by attribute. TODO -> find out if parameter needs url encoding, if multiple parameters are possible encapsulated in q, generally unclear
+      summary: |
+        Get List of SH Device types by applying a filter. TODO -> find out if parameter needs url encoding
       description: Responds like successful GET /smh-devices if parameter isn't provided, responds with empty array if match isn't found.
       parameters:
       - in: query
@@ -1297,9 +1299,6 @@ paths:
                   value:
                     type: string
                     example: "{http}://{ip}/relay/0?turn=off"
-                  param:
-                    type: string
-                    example: ""
       responses:
         '200':
           description: OK
