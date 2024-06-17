@@ -891,9 +891,13 @@ components:
         id:
           type: string
           example: "7"
+        parent_id:
+          description: "id of some other User SH Device, one usecase would be Homematic device that controls many other Homematic devices"
+          type: string
+          example: "12"
         type:
           type: string
-          example: "1"
+          example: "100"
         name:
           type: string
           example: "Shelly Plug-S Wohnzimmer"
@@ -904,6 +908,9 @@ components:
           type: string
           example: "192.168.1.103"
         params:
+          description: |
+            Full JOIN of 'parameter' attribute of parent and child. Is automatically calculated in the backend, not actually saved.
+            If Parent and child both have same attribute inside the 'parameter' object, 'params' will pick the one from the child.
           type: string
           nullable: true
           example: "{\r\n  \"http\": \"http\",\r\n  \"ip\": \"192.168.1.103\"\r\n}"
@@ -1074,7 +1081,7 @@ tags:
       Extends SH Device types with list of actions. Example for Action: GET with certain parameter to IP of Shelly Plug S. SH Devices from different vendors like Shelly have unique apis. Actions act as an adapter, so the frontend doesn't need extra code for every vendor. **Careful**: The Action List doesn't show on GET all smh device templates, it shows for the GET for the user smh devices, but the actions are part of the template! Therefore, deviceId is a smh device id, not a user smh device id.
   - name: User SH Devices
     description: |
-      Instance of the template made from SH Device types and Actions", represents an actual Device.
+      Instance of the template made from SH Device types and Actions", represents an actual Device. Definitely check out the schema "user-smh-device" below, there is some inheritance explained there.
   - name: Labels
     description: |
       Global for all users. If one user creates a Label, everybody can see it. Type attribute has nothing to do with type attribute in other endpoints. Type 1 = room, Type 2 = group, others are currently not in use
@@ -1357,9 +1364,12 @@ paths:
             schema:
               type: object
               properties:
+                parent_id:
+                  type: string
+                  example: "12"
                 type:
                   type: string #note that this attribute is named "type"
-                  example: "1"
+                  example: "100"
                 name:
                   type: string
                   example: "Shelly Plug-S Wohnzimmer"
@@ -1369,7 +1379,7 @@ paths:
                 ip:
                   type: string
                   example: "192.168.1.103"
-                params:
+                parameter:
                   type: string
                   example: "{\r\n  \"http\": \"http\",\r\n  \"ip\": \"192.168.1.103\"\r\n}"
       responses:
