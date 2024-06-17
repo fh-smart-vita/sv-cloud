@@ -904,9 +904,6 @@ components:
         description:
           type: string
           example: "Mein Shelly Plug S Licht im Wohnzimmer"
-        ip:
-          type: string
-          example: "192.168.1.103"
         params:
           description: |
             Full JOIN of 'parameter' attribute of parent and child. Is automatically calculated in the backend, not actually saved.
@@ -1376,9 +1373,6 @@ paths:
                 description:
                   type: string
                   example: "Mein Shelly Plug S Licht im Wohnzimmer"
-                ip:
-                  type: string
-                  example: "192.168.1.103"
                 parameter:
                   type: string
                   example: "{\r\n  \"http\": \"http\",\r\n  \"ip\": \"192.168.1.103\"\r\n}"
