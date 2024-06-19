@@ -1355,7 +1355,7 @@ paths:
         - User SH Devices
       requestBody:
         description: |
-          the 'params' attribute provides the parameters for the Actions/States
+          the 'params' attribute provides the parameters for the Actions/States. parent_id cannot be "", either leave it out or put null
         content:
           application/json:
             schema:
