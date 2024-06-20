@@ -1355,7 +1355,8 @@ paths:
         - User SH Devices
       requestBody:
         description: |
-          the 'params' attribute provides the parameters for the Actions/States. parent_id cannot be "", either leave it out or put null
+          The 'params' attribute provides the parameters for the Actions/States. parent_id cannot be "", either leave it out or put null.
+          Label links cannot be created by providing array with values for label, use Label Links endpoints for that.
         content:
           application/json:
             schema:
@@ -1396,6 +1397,17 @@ paths:
           schema:
             type: string
           required: true
+      requestBody:
+        description: |
+          Label links cannot be created by providing array with values for label, use Label Links endpoints for that.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "new name"
       responses:
         '200':
           description: "OK"
