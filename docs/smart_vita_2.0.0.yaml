@@ -975,6 +975,26 @@ components:
           type: string
           format: date-time
           example: "2024-06-06 11:30:52"
+    user-smh-device-label-link:
+      type: object
+      properties:
+        id:
+          description: "id of the link itself"
+          type: string
+          example: "1"
+        shd_label_id:
+          description: "id of the Label the link refers to, This is the value that appears in the labels array on a User Smart Home Device"
+          type: string
+          example: "5"
+        name:
+          type: string
+          example: "Wohnzimmer"
+        description:
+          type: string
+          example: "Ein Label fuer alle Smart Home Devices im Wohnzimmertest"
+        type:
+          type: string
+          example: "1"
   ###########  ERRORS  ##############
     InvalidJsonError:
       type: object
@@ -1544,7 +1564,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/user-smh-device-label'
+                  $ref: '#/components/schemas/user-smh-device-label-link'
         '404':
           $ref: '#/components/responses/NotFound'  
     post:
@@ -1572,13 +1592,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/user-smh-device-label'
+                $ref: '#/components/schemas/user-smh-device-label-link'
         '201':
           description: "Created"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/user-smh-device-label'
+                $ref: '#/components/schemas/user-smh-device-label-link'
         '404':
           $ref: '#/components/responses/NotFound'
     
