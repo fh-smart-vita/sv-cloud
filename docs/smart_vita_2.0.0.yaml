@@ -155,6 +155,7 @@ components:
         sdName:
           type: string
           example: '408398AE3FD1'
+          description: "must be unique"
         drName:
           type: string
           example: 'SV Device'
@@ -328,6 +329,12 @@ components:
           $ref: "#/components/schemas/hrefTypeDevice"
         kpis: 
           $ref: "#/components/schemas/hrefTypeKpis"
+        charts:
+          type: object
+          properties:
+            href:
+              type: string
+              example: "/userconfigs/search?q=group%3Ddevice.dashboard%2Breference%3D274"
         data:
           $ref: "#/components/schemas/hrefTypeDataValues"
         reading:
@@ -1643,7 +1650,7 @@ paths:
     post:
       tags:
         - Devices
-      summary: Create device
+      summary: Create device (Careful! Many other Endpoints need to go along with this one when Onboarding. For Example, you need to post user configs)
       requestBody:
         content:
           application/json:
@@ -1670,7 +1677,7 @@ paths:
     get:
       tags:
         - Devices
-      summary: Find device by sdName property
+      summary: Get device details by sdName property
       parameters:
         - name: sdname
           in: query
