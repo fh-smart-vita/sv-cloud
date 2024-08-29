@@ -911,10 +911,13 @@ components:
         description:
           type: string
           example: "Mein Shelly Plug S Licht im Wohnzimmer"
+        parameter:
+          type: string
+          example: "{\r\n  \"http\": \"http\",\r\n  \"ip\": \"192.168.1.103\"\r\n}"
         params:
           description: |
-            Full JOIN of 'parameter' attribute of parent and child. Is automatically calculated in the backend, not actually saved.
-            If Parent and child both have same attribute inside the 'parameter' object, 'params' will pick the one from the child.
+            Full JOIN of 'parameter' attribute of parent and itself. Is automatically calculated in the backend, not actually saved.
+            If Parent and child both have same attribute inside the 'parameter' object, 'params' will pick the one from itself.
           type: string
           nullable: true
           example: "{\r\n  \"http\": \"http\",\r\n  \"ip\": \"192.168.1.103\"\r\n}"
